@@ -1,4 +1,4 @@
-function [J grad] = nnCostFunction(nn_params, ...
+function [J, grad] = nnCostFunction(nn_params, ...
                                    input_layer_size, ...
                                    hidden_layer_size, ...
                                    num_labels, ...
@@ -62,23 +62,51 @@ Theta2_grad = zeros(size(Theta2));
 %               and Theta2_grad from Part 2.
 %
 
+% 计算Y，每列表示一个example的输出
+Y = zeros(num_labels, m);
+for i = 1 : num_labels
+    Y(i, y == i) = 1;
+end
 
+% 向前传播，包含正则化项
+X = [ones(m, 1), X]';
 
+% 使用矩阵运算直接求损失函数
+% a1 = X;
+% z2 = Theta1 * a1;
+% a2 = sigmoid(z2);
+% a2 = [ones(1, size(a2, 2)); a2];
+% z3 = Theta2 * a2;
+% a3 = sigmoid(z3);
+% J = sum((-Y .* log(a3) - (1 - Y) .* log(1 - a3)), 'all') / m;   % 不包含正则化项
+% J = J + lambda / 2 / m * ...
+%     (sum(Theta1(:, 2:end) .^ 2, 'all') + sum(Theta2(:, 2:end) .^ 2, 'all'));
 
+for t = 1 : m
+    a1 = X(:, t);
+    y = Y(:, t);
+    z2 = Theta1 * a1;
+    a2 = sigmoid(z2);
+    a2 = [1; a2];
+    z3 = Theta2 * a2;
+    a3 = sigmoid(z3);
+    
+    delta3 = a3 - y;
+    delta2 = Theta2(:, 2:end)' * delta3 .* sigmoidGradient(z2);
+    Theta2_grad = Theta2_grad + delta3 * a2';
+    Theta1_grad = Theta1_grad + delta2 * a1';
+    
+    J = J + sum(-y .* log(a3) - (1 - y) .* log(1 - a3));
+end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Theta1_grad(:, 1) = Theta1_grad(:, 1) / m;
+Theta1_grad(:, 2:end) = Theta1_grad(:, 2:end) / m + ...
+    lambda / m * Theta1(:, 2:end);
+Theta2_grad(:, 1) = Theta2_grad(:,1) / m;
+Theta2_grad(:, 2:end) = Theta2_grad(:, 2:end) / m + ...
+    lambda / m * Theta2(:, 2:end);
+J = J / m + lambda / 2 / m * ...
+    (sum(Theta1(:, 2:end) .^ 2, 'all') + sum(Theta2(:, 2:end) .^ 2, 'all'));
 
 % -------------------------------------------------------------
 
